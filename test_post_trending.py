@@ -1,7 +1,10 @@
-from post_trending import format_linkedin
+from post_trending import format_linkedin, pick_unposted
 
-_repos = [{"name": "foo/bar", "desc": "A cool tool", "stars_today": "1,234 stars today"}]
+_repo = {"name": "foo/bar", "desc": "A cool tool", "stars_today": "1,234 stars today"}
 
-assert "foo/bar" in format_linkedin(_repos)
-assert "A cool tool" in format_linkedin(_repos)
+result = format_linkedin(_repo)
+assert "foo/bar" in result
+assert "https://github.com/foo/bar" in result
+
+assert pick_unposted([_repo])["name"] == "foo/bar"
 print("ok")

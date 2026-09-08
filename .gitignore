@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+*.plist
+run.log
+posted_repos.txt
