@@ -184,12 +184,12 @@ def humanize(text):
 
 
 def format_linkedin(item):
-    # No link here — it gets posted as the first comment instead (see comment_with_link):
-    # in-body links are suppressed ~40-60%, link-in-first-comment gets ~2.1x reach.
+    # No link, no stats line — just the story and hashtags. The link goes out as the
+    # first comment instead (see comment_with_link): in-body links are suppressed
+    # ~40-60%, link-in-first-comment gets ~2.1x reach.
     story = humanize(summarize(item) or item["desc"] or item["title"])
-    emoji = "⭐" if item["source"] == "github" else "📈"
     tag = "#OpenSource #GitHub" if item["source"] == "github" else "#HackerNews #Tech"
-    return f"{story}\n\n{emoji} {item['title']} ({item['metric']})\n\n{tag}"
+    return f"{story}\n\n{tag}"
 
 
 def post_to_linkedin(text):
