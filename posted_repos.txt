@@ -24,3 +24,4 @@ heygen-com/hyperframes
 ayghri/i-have-adhd
 openai/skills
 hn:49626190|hackernews|contrarian|urn:li:share:7503485953542590465
+Tencent/teamai-cli|github|curiosity_gap|urn:li:share:7503488676719386624
