@@ -2,7 +2,6 @@ __pycache__/
 *.pyc
 *.plist
 run.log
-posted_repos.txt
 .venv/
 .pytest_cache/
 .serena/

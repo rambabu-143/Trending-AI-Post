@@ -53,3 +53,4 @@ After that it runs automatically every day at 9:00 AM IST (edit the cron in
 ## Notes
 - LinkedIn access tokens from the standard OAuth flow expire (~60 days). If posts stop working, refresh the token and update the secret.
 - If GitHub changes their trending page HTML, `get_trending()` in `src/trending_repo_bot/main.py` may need a selector tweak.
+- `posted_repos.txt` is tracked in git — the workflow commits it back after each run so dedup state survives across the ephemeral GitHub Actions runner. Don't also run the bot from a local cron/launchd job against the same repo; two schedulers with unsynced copies of this file can double-post.
