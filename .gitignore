@@ -3,3 +3,7 @@ __pycache__/
 *.plist
 run.log
 posted_repos.txt
+.venv/
+.pytest_cache/
+.serena/
+graphify-out/

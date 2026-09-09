@@ -1,0 +1,24 @@
+[project]
+name = "trending-repo-bot"
+version = "0.1.0"
+description = "Fetch today's GitHub trending repos, summarize with a local Ollama model, and post to LinkedIn."
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+]
+
+[project.scripts]
+post-trending = "trending_repo_bot.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trending_repo_bot"]

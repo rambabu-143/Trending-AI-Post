@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 FETCH_N = 25  # buffer to search through for one not already posted
 OLLAMA_MODEL = "llama3.2"
-POSTED_LOG = Path(__file__).parent / "posted_repos.txt"
+POSTED_LOG = Path(__file__).resolve().parents[2] / "posted_repos.txt"  # repo root
 
 
 def get_trending(language=""):
@@ -100,7 +100,7 @@ def post_to_linkedin(text):
     resp.raise_for_status()
 
 
-if __name__ == "__main__":
+def main():
     repos = get_trending()
     if not repos:
         raise SystemExit("No trending repos found — GitHub markup may have changed.")
@@ -110,3 +110,7 @@ if __name__ == "__main__":
     post_to_linkedin(format_linkedin(repo))
     mark_posted(repo["name"])
     print(f"Posted {repo['name']} to LinkedIn.")
+
+
+if __name__ == "__main__":
+    main()

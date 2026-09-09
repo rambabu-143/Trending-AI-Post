@@ -8,6 +8,22 @@ Runs on GitHub Actions — no server needed.
 2. Formats a roundup post
 3. Posts it to LinkedIn via the API
 
+## Layout
+```
+src/trending_repo_bot/main.py   # the bot
+scripts/get_linkedin_token.py   # one-time OAuth helper
+tests/test_main.py
+```
+
+## Local setup
+Requires [uv](https://docs.astral.sh/uv/).
+```bash
+uv sync
+uv run post-trending          # run the bot
+uv run python scripts/get_linkedin_token.py   # get LinkedIn credentials
+uv run pytest                 # run tests
+```
+
 ## One-time setup
 
 ### 1. LinkedIn API
@@ -32,4 +48,4 @@ After that it runs automatically every day at 9:00 AM IST (edit the cron in
 
 ## Notes
 - LinkedIn access tokens from the standard OAuth flow expire (~60 days). If posts stop working, refresh the token and update the secret.
-- If GitHub changes their trending page HTML, `get_trending()` in `post_trending.py` may need a selector tweak.
+- If GitHub changes their trending page HTML, `get_trending()` in `src/trending_repo_bot/main.py` may need a selector tweak.
