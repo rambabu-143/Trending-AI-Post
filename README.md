@@ -5,8 +5,12 @@ Runs on GitHub Actions — no server needed.
 
 ## What it does
 1. Scrapes `github.com/trending?since=daily`
-2. Formats a roundup post
-3. Posts it to LinkedIn via the API
+2. Summarizes the repo as a post via a local Ollama model, following LinkedIn's 2026 algorithm
+   heuristics (number-first opener, no question opener, closing question, capped hashtags) —
+   see [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills) for the
+   source rules
+3. Posts it to LinkedIn via the API, then drops the repo link as the first comment instead of
+   in the body (in-body links get suppressed ~40-60% on LinkedIn)
 
 ## Layout
 ```
