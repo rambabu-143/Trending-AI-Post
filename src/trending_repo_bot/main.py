@@ -7,7 +7,8 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-FETCH_N = 25  # buffer to search through for one not already posted
+GITHUB_FETCH_N = 25  # buffer to search through for one not already posted
+HN_FETCH_N = 15
 OLLAMA_MODEL = "llama3.2"
 POSTED_LOG = Path(__file__).resolve().parents[2] / "posted_repos.txt"  # repo root
 
@@ -54,52 +55,102 @@ def _pick_hook_formula(name):
     return list(HOOK_FORMULAS)[sum(name.encode()) % len(HOOK_FORMULAS)]
 
 
-def get_trending(language=""):
+def get_github_trending(language=""):
+    """Trending GitHub repos as source-agnostic items (id/title/desc/url/metric/source)."""
     url = f"https://github.com/trending/{language}?since=daily"
     html = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15).text
     soup = BeautifulSoup(html, "html.parser")
-    repos = []
-    for article in soup.select("article.Box-row")[:FETCH_N]:
+    items = []
+    for article in soup.select("article.Box-row")[:GITHUB_FETCH_N]:
         name = article.select_one("h2 a")["href"].strip("/")
         desc_tag = article.select_one("p")
         desc = desc_tag.text.strip() if desc_tag else ""
         stars_tag = article.select_one("span.d-inline-block.float-sm-right")
         stars_today = stars_tag.text.strip() if stars_tag else ""
-        repos.append({"name": name, "desc": desc, "stars_today": stars_today})
-    return repos
+        items.append({
+            "id": name,  # bare "owner/repo" — matches the pre-existing posted_repos.txt format
+            "title": name,
+            "desc": desc,
+            "url": f"https://github.com/{name}",
+            "metric": stars_today,
+            "source": "github",
+        })
+    return items
+
+
+def get_hn_trending():
+    """Top Hacker News stories with an external link, via HN's official Firebase API."""
+    ids = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json", timeout=15).json()
+    items = []
+    for story_id in ids[:HN_FETCH_N]:
+        story = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json", timeout=15).json()
+        if not story or story.get("type") != "story" or not story.get("url"):
+            continue  # skip Ask/Show HN text posts, jobs, and dead/deleted items
+        items.append({
+            "id": f"hn:{story_id}",
+            "title": story.get("title", ""),
+            "desc": "",
+            "url": story["url"],
+            "metric": f"{story.get('score', 0)} points, {story.get('descendants', 0)} comments",
+            "source": "hackernews",
+        })
+    return items
+
+
+def get_trending():
+    return get_github_trending() + get_hn_trending()
 
 
 def already_posted():
     if not POSTED_LOG.exists():
         return set()
-    return set(POSTED_LOG.read_text().splitlines())
+    # older entries are a bare id; newer ones are "id|source|hook_formula|post_urn" — id is always field 0
+    return {line.split("|", 1)[0] for line in POSTED_LOG.read_text().splitlines() if line}
 
 
-def mark_posted(name):
+def _last_posted_source():
+    if not POSTED_LOG.exists():
+        return None
+    lines = [l for l in POSTED_LOG.read_text().splitlines() if l]
+    if not lines:
+        return None
+    fields = lines[-1].split("|")
+    return fields[1] if len(fields) > 1 else "github"  # pre-source entries were all GitHub
+
+
+def mark_posted(item, post_urn):
     with POSTED_LOG.open("a") as f:
-        f.write(name + "\n")
+        f.write(f"{item['id']}|{item['source']}|{_pick_hook_formula(item['id'])}|{post_urn or ''}\n")
 
 
-def pick_unposted(repos):
+def pick_unposted(items):
     posted = already_posted()
-    for r in repos:
-        if r["name"] not in posted:
-            return r
-    return None
+    candidates = [i for i in items if i["id"] not in posted]
+    if not candidates:
+        return None
+    # alternate sources day to day so GitHub's big daily-fresh list doesn't crowd out HN
+    last_source = _last_posted_source()
+    for i in candidates:
+        if i["source"] != last_source:
+            return i
+    return candidates[0]
 
 
-def summarize(name, desc):
+def summarize(item):
     # Rules below follow LinkedIn's 2026 algorithm heuristics (question openers and
     # in-body links both get penalized — see sergebulaev/linkedin-skills reference repo).
-    hook_rule = HOOK_FORMULAS[_pick_hook_formula(name)]
+    hook_rule = HOOK_FORMULAS[_pick_hook_formula(item["id"])]
+    kind = "trending open-source GitHub project" if item["source"] == "github" else "story trending on Hacker News"
     prompt = (
-        f"Repo: {name}\nGitHub description: {desc}\n\n"
-        "Write a LinkedIn post about this trending open-source GitHub project, as a short story:\n"
+        f"Title: {item['title']}\nDescription: {item['desc']}\n\n"
+        f"Write a LinkedIn post about this {kind}, as a short story:\n"
         f"1. {hook_rule}\n"
-        "2. Introduce this repo as the solution.\n"
-        "3. Explain what it does in 4-6 short sentences, like explaining to a 10-year-old: simple "
+        "2. Introduce it as the solution / the thing worth knowing about.\n"
+        "3. Explain what it is in 3-5 short sentences, like explaining to a 10-year-old: simple "
         "words, no jargon, use an analogy if it helps.\n"
-        "4. Close with one specific question about the reader's own experience with this kind of problem.\n"
+        "4. Add one sentence of your own specific opinion or prediction — why this actually "
+        "matters or where it's headed. Not generic praise: a real stance someone could disagree with.\n"
+        "5. Close with one specific question about the reader's own experience with this kind of problem.\n"
         "Style: 900-1300 characters, 1-2 sentence paragraphs with a blank line between them, at most "
         "one em dash total. Avoid 'game-changer', 'leverage', 'delve', 'fundamentally', 'in today's "
         "fast-paced world', 'the result?', 'plot twist:'.\n"
@@ -132,11 +183,13 @@ def humanize(text):
     return text.strip()
 
 
-def format_linkedin(r):
+def format_linkedin(item):
     # No link here — it gets posted as the first comment instead (see comment_with_link):
     # in-body links are suppressed ~40-60%, link-in-first-comment gets ~2.1x reach.
-    story = humanize(summarize(r["name"], r["desc"]) or r["desc"])
-    return f"{story}\n\n⭐ {r['name']} ({r['stars_today']} today)\n\n#OpenSource #GitHub"
+    story = humanize(summarize(item) or item["desc"] or item["title"])
+    emoji = "⭐" if item["source"] == "github" else "📈"
+    tag = "#OpenSource #GitHub" if item["source"] == "github" else "#HackerNews #Tech"
+    return f"{story}\n\n{emoji} {item['title']} ({item['metric']})\n\n{tag}"
 
 
 def post_to_linkedin(text):
@@ -187,19 +240,19 @@ def comment_with_link(post_urn, repo_url):
 
 
 def main():
-    repos = get_trending()
-    if not repos:
-        raise SystemExit("No trending repos found — GitHub markup may have changed.")
-    repo = pick_unposted(repos)
-    if repo is None:
-        raise SystemExit("All of today's trending repos were already posted before — nothing new to post.")
-    post_urn = post_to_linkedin(format_linkedin(repo))
+    items = get_trending()
+    if not items:
+        raise SystemExit("No trending items found — GitHub/HN markup or API may have changed.")
+    item = pick_unposted(items)
+    if item is None:
+        raise SystemExit("Everything currently trending was already posted before — nothing new to post.")
+    post_urn = post_to_linkedin(format_linkedin(item))
     try:
-        comment_with_link(post_urn, f"https://github.com/{repo['name']}")
+        comment_with_link(post_urn, item["url"])
     except requests.HTTPError as e:
         print(f"Posted, but couldn't attach the link comment: {e}")
-    mark_posted(repo["name"])
-    print(f"Posted {repo['name']} to LinkedIn.")
+    mark_posted(item, post_urn)
+    print(f"Posted [{item['source']}] {item['title']} to LinkedIn.")
 
 
 if __name__ == "__main__":

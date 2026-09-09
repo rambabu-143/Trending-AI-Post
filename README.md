@@ -1,21 +1,27 @@
 # trending-repo-bot
 
-Every day, posts today's top 5 GitHub trending repos to LinkedIn.
-Runs on GitHub Actions — no server needed.
+Every day, posts one trending item to LinkedIn — a GitHub repo or a Hacker News story,
+alternating so one source doesn't crowd out the other. Runs on GitHub Actions — no server needed.
 
 ## What it does
-1. Scrapes `github.com/trending?since=daily`
-2. Summarizes the repo as a post via a local Ollama model, following LinkedIn's 2026 algorithm
-   heuristics (number-first opener, no question opener, closing question, capped hashtags) —
-   see [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills) for the
-   source rules
-3. Posts it to LinkedIn via the API, then drops the repo link as the first comment instead of
+1. Pulls today's top GitHub trending repos (`github.com/trending`) and top Hacker News
+   stories (HN's official Firebase API), and picks one not already posted — alternating
+   source from the last post so both stay in rotation
+2. Summarizes it as a post via a local Ollama model: a hook (rotated across a few proven
+   openers), a plain-language explanation, one sentence of actual opinion/prediction (not
+   just a report), and a closing question — following LinkedIn's 2026 algorithm heuristics
+   (no question-opener, closing question, capped hashtags) and voice rules (AI-tell vocab
+   scrub, em-dash cap) from [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills)
+3. Posts it to LinkedIn via the API, then drops the link as the first comment instead of
    in the body (in-body links get suppressed ~40-60% on LinkedIn)
+4. Logs `id|source|hook_formula|post_urn` to `posted_repos.txt` for dedup and for
+   `scripts/engagement_report.py` to look up likes/comments later
 
 ## Layout
 ```
-src/trending_repo_bot/main.py   # the bot
-scripts/get_linkedin_token.py   # one-time OAuth helper
+src/trending_repo_bot/main.py     # the bot
+scripts/get_linkedin_token.py     # one-time OAuth helper
+scripts/engagement_report.py      # manual: likes/comments per past post, by source + hook formula
 tests/test_main.py
 ```
 
@@ -52,5 +58,6 @@ After that it runs automatically every day at 9:00 AM IST (edit the cron in
 
 ## Notes
 - LinkedIn access tokens from the standard OAuth flow expire (~60 days). If posts stop working, refresh the token and update the secret.
-- If GitHub changes their trending page HTML, `get_trending()` in `src/trending_repo_bot/main.py` may need a selector tweak.
+- If GitHub changes their trending page HTML, `get_github_trending()` in `src/trending_repo_bot/main.py` may need a selector tweak.
+- `scripts/engagement_report.py` depends on LinkedIn's Social Actions API returning like/comment counts for personal posts, which some app/token grants don't include — if every row prints `?`, that's a scope limit, not a bug.
 - `posted_repos.txt` is tracked in git — the workflow commits it back after each run so dedup state survives across the ephemeral GitHub Actions runner. Don't also run the bot from a local cron/launchd job against the same repo; two schedulers with unsynced copies of this file can double-post.
