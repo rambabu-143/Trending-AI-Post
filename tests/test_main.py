@@ -18,12 +18,14 @@ def test_pick_unposted_alternates_source(tmp_path, monkeypatch):
     assert pick_unposted(items)["id"] == "hn:1"
 
 
-def test_humanize_scrubs_vocab_and_caps_em_dashes():
-    text = "This is a game-changing leverage play — and here — and here — and here."
+def test_humanize_scrubs_vocab_and_strips_all_dashes():
+    text = "This is a game-changing leverage play — and here – and here -- and here."
     out = humanize(text)
     assert "game-changing" not in out.lower()
     assert "leverage" not in out.lower()
-    assert out.count("—") <= 1
+    assert "—" not in out
+    assert "–" not in out
+    assert "--" not in out
 
 
 def test_pick_hook_formula_is_deterministic_and_valid():

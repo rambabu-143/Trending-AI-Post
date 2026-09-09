@@ -151,9 +151,9 @@ def summarize(item):
         "4. Add one sentence of your own specific opinion or prediction — why this actually "
         "matters or where it's headed. Not generic praise: a real stance someone could disagree with.\n"
         "5. Close with one specific question about the reader's own experience with this kind of problem.\n"
-        "Style: 900-1300 characters, 1-2 sentence paragraphs with a blank line between them, at most "
-        "one em dash total. Avoid 'game-changer', 'leverage', 'delve', 'fundamentally', 'in today's "
-        "fast-paced world', 'the result?', 'plot twist:'.\n"
+        "Style: 900-1300 characters, 1-2 sentence paragraphs with a blank line between them, "
+        "no em dashes anywhere, use a comma or period instead. Avoid 'game-changer', 'leverage', "
+        "'delve', 'fundamentally', 'in today's fast-paced world', 'the result?', 'plot twist:'.\n"
         "Plain text only, no hashtags, no links, no quotes, no markdown."
     )
     resp = requests.post(
@@ -167,19 +167,15 @@ def summarize(item):
 
 def humanize(text):
     """Deterministic backstop for prompt rules the model didn't follow: strip AI-tell
-    vocab, cap em dashes at ~1 per 100 words."""
+    vocab, strip every em dash / en dash / double-hyphen — no cap, no exceptions."""
     for bad, good in AI_VOCAB.items():
         pattern = re.escape(bad) if " " in bad else rf"\b{re.escape(bad)}\b"
         text = re.sub(pattern, good, text, flags=re.IGNORECASE)
+
+    text = re.sub(r"\s*(?:—|–|--)\s*", ", ", text)
+    text = re.sub(r",\s*,", ",", text)
     text = re.sub(r" {2,}", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
-
-    cap = max(1, len(text.split()) // 100)
-    parts = text.split("—")
-    if len(parts) - 1 > cap:
-        text = "—".join(parts[: cap + 1]) + ". " + ". ".join(
-            p.strip().capitalize() for p in parts[cap + 1:]
-        )
     return text.strip()
 
 
