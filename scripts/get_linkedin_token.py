@@ -21,7 +21,7 @@ auth_url = "https://www.linkedin.com/oauth/v2/authorization?" + urllib.parse.url
     "scope": "openid profile w_member_social",
 })
 print(f"\n1. Open this URL, log in, and click Allow:\n{auth_url}\n")
-print("2. You'll land on a broken localhost page — that's fine, copy the 'code' value from the URL bar.")
+print("2. You'll land on a broken localhost page, that's fine, copy the 'code' value from the URL bar.")
 code = input("\nPaste the code here: ").strip()
 
 token_resp = requests.post(
@@ -48,4 +48,4 @@ urn = f"urn:li:person:{userinfo['sub']}"
 print("\nDone. Add these as GitHub repo secrets:")
 print(f"LINKEDIN_ACCESS_TOKEN = {access_token}")
 print(f"LINKEDIN_AUTHOR_URN = {urn}")
-print("\n(Token expires in ~60 days — rerun this script to refresh it.)")
+print("\n(Token expires in ~60 days, rerun this script to refresh it.)")

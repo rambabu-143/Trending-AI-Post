@@ -12,7 +12,7 @@ HN_FETCH_N = 15
 OLLAMA_MODEL = "llama3.2"
 POSTED_LOG = Path(__file__).resolve().parents[2] / "posted_repos.txt"  # repo root
 
-# ponytail: fixed word-swap list, not a real style model — extend as new AI tells show up.
+# ponytail: fixed word-swap list, not a real style model. Extend as new AI tells show up.
 AI_VOCAB = {
     "game-changing": "useful",
     "game-changer": "a real fix",
@@ -36,7 +36,7 @@ AI_VOCAB = {
 }
 
 # Reveal-bridge / templated-rhythm patterns models default to (from the linkedin-skills
-# humanizer reference) — regex-anchored so they catch more than an exact literal match.
+# humanizer reference), regex-anchored so they catch more than an exact literal match.
 REVEAL_BRIDGE_PATTERNS = [
     r"(?im)^here'?s (what|how|why|the thing)\b[^:.\n]{0,40}[:.]\s*",
     r"(?im)^(plot twist|spoiler|the twist)[:?]\s*",
@@ -45,20 +45,20 @@ REVEAL_BRIDGE_PATTERNS = [
 NEG_PARALLEL_PATTERN = r"(?i)\bit'?s not \w[^,.]{0,40},\s*it'?s\s+"
 
 # Hook openers adapted from the Post Writer skill's formula library
-# (github.com/sergebulaev/linkedin-skills) — trimmed to the ones that fit a
+# (github.com/sergebulaev/linkedin-skills), trimmed to the ones that fit a
 # one-repo announcement. Picked per repo so daily posts don't all read the same.
 HOOK_FORMULAS = {
     "number_stat": (
         "Line 1 is a specific number about the problem this repo solves (hours wasted, "
-        "repos that reinvent this, how often it comes up) — a statement, never a question."
+        "repos that reinvent this, how often it comes up), a statement, never a question."
     ),
     "contrarian": (
         "Line 1 names the common, harder way developers currently solve this problem, as a "
-        "flat statement — no question, no 'here's how'."
+        "flat statement, no question, no 'here's how'."
     ),
     "curiosity_gap": (
         "Line 1 is a specific, concrete tease about what this repo does that pays off within "
-        "the next 2 lines — a real detail, not a vague tease like 'what nobody tells you'."
+        "the next 2 lines, a real detail, not a vague tease like 'what nobody tells you'."
     ),
     "explain_kids": (
         "Line 1 is a one-sentence real-world scenario (a statement, not a question) that "
@@ -84,7 +84,7 @@ def get_github_trending(language=""):
         stars_tag = article.select_one("span.d-inline-block.float-sm-right")
         stars_today = stars_tag.text.strip() if stars_tag else ""
         items.append({
-            "id": name,  # bare "owner/repo" — matches the pre-existing posted_repos.txt format
+            "id": name,  # bare "owner/repo", matches the pre-existing posted_repos.txt format
             "title": name,
             "desc": desc,
             "url": f"https://github.com/{name}",
@@ -120,7 +120,7 @@ def get_trending():
 def already_posted():
     if not POSTED_LOG.exists():
         return set()
-    # older entries are a bare id; newer ones are "id|source|hook_formula|post_urn" — id is always field 0
+    # older entries are a bare id; newer ones are "id|source|hook_formula|post_urn"; id is always field 0
     return {line.split("|", 1)[0] for line in POSTED_LOG.read_text().splitlines() if line}
 
 
@@ -154,7 +154,7 @@ def pick_unposted(items):
 
 def summarize(item):
     # Rules below follow LinkedIn's 2026 algorithm heuristics (question openers and
-    # in-body links both get penalized — see sergebulaev/linkedin-skills reference repo).
+    # in-body links both get penalized, see sergebulaev/linkedin-skills reference repo).
     hook_rule = HOOK_FORMULAS[_pick_hook_formula(item["id"])]
     kind = "trending open-source GitHub project" if item["source"] == "github" else "story trending on Hacker News"
     prompt = (
@@ -164,12 +164,12 @@ def summarize(item):
         "2. Introduce it as the solution / the thing worth knowing about.\n"
         "3. Explain what it is in 3-5 short sentences, like explaining to a 10-year-old: simple "
         "words, no jargon, use an analogy if it helps.\n"
-        "4. Add one sentence of your own specific opinion or prediction — why this actually "
+        "4. Add one sentence of your own specific opinion or prediction: why this actually "
         "matters or where it's headed. Not generic praise: a real stance someone could disagree with.\n"
         "5. Close with one specific question about the reader's own experience with this kind of problem.\n"
         "Style: 900-1300 characters, 1-2 sentence paragraphs with a blank line between them. "
         "No dashes anywhere, not em dashes and not a hyphen with spaces around it either "
-        "(' - ') — use a comma or period instead. Avoid 'game-changer', 'leverage', "
+        "(' - '). Use a comma or period instead. Avoid 'game-changer', 'leverage', "
         "'delve', 'fundamentally', 'in today's fast-paced world', 'the result?', 'plot twist:'.\n"
         "Plain text only, no hashtags, no links, no quotes, no markdown."
     )
@@ -185,8 +185,8 @@ def summarize(item):
 def humanize(text):
     """Deterministic backstop for prompt rules the model didn't follow: strip AI-tell
     vocab and reveal-bridge phrasing, straighten quotes, and strip every dash-like
-    separator (em dash, en dash, double-hyphen, or a spaced-out single hyphen — llama3.2's
-    own substitute when asked not to use dashes) — no cap, no exceptions."""
+    separator. Covers the em dash, en dash, double-hyphen, and a spaced-out single
+    hyphen (llama3.2's own substitute when asked not to use dashes). No cap, no exceptions."""
     for bad, good in AI_VOCAB.items():
         pattern = re.escape(bad) if " " in bad else rf"\b{re.escape(bad)}\b"
         text = re.sub(pattern, good, text, flags=re.IGNORECASE)
@@ -213,7 +213,7 @@ def humanize(text):
 
 
 def format_linkedin(item):
-    # No link, no stats line — just the story and hashtags. The link goes out as the
+    # No link, no stats line, just the story and hashtags. The link goes out as the
     # first comment instead (see comment_with_link): in-body links are suppressed
     # ~40-60%, link-in-first-comment gets ~2.1x reach.
     story = humanize(summarize(item) or item["desc"] or item["title"])
@@ -271,10 +271,10 @@ def comment_with_link(post_urn, repo_url):
 def main():
     items = get_trending()
     if not items:
-        raise SystemExit("No trending items found — GitHub/HN markup or API may have changed.")
+        raise SystemExit("No trending items found. GitHub/HN markup or API may have changed.")
     item = pick_unposted(items)
     if item is None:
-        raise SystemExit("Everything currently trending was already posted before — nothing new to post.")
+        raise SystemExit("Everything currently trending was already posted before, nothing new to post.")
     post_urn = post_to_linkedin(format_linkedin(item))
     try:
         comment_with_link(post_urn, item["url"])

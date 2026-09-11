@@ -4,7 +4,7 @@ formula, so you can see what's actually resonating.
 Reads posted_repos.txt for "id|source|hook_formula|post_urn" lines (older entries with
 no captured URN are skipped) and queries LinkedIn's Social Actions API for each.
 
-ponytail: LinkedIn's personal-post analytics access varies by app/product grant — if every
+ponytail: LinkedIn's personal-post analytics access varies by app/product grant. If every
 row prints "?", your token's scope likely doesn't include social-action reads; the log
 itself (source + hook formula per post) is still there to eyeball by hand.
 
