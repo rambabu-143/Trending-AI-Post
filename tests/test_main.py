@@ -41,3 +41,18 @@ def test_humanize_strips_reveal_bridges_and_negative_parallelism():
 def test_pick_hook_formula_is_deterministic_and_valid():
     assert _pick_hook_formula("foo/bar") in HOOK_FORMULAS
     assert _pick_hook_formula("foo/bar") == _pick_hook_formula("foo/bar")
+
+
+def test_post_to_linkedin_401_gives_actionable_message(monkeypatch):
+    class FakeResp:
+        status_code = 401
+
+    monkeypatch.setattr(bot.requests, "post", lambda *a, **k: FakeResp())
+    monkeypatch.setenv("LINKEDIN_ACCESS_TOKEN", "x")
+    monkeypatch.setenv("LINKEDIN_AUTHOR_URN", "x")
+    try:
+        bot.post_to_linkedin("hello")
+        assert False, "expected SystemExit"
+    except SystemExit as e:
+        assert "expired" in str(e)
+        assert "get_linkedin_token.py" in str(e)

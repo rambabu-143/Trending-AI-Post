@@ -245,6 +245,12 @@ def post_to_linkedin(text):
         },
         timeout=15,
     )
+    if resp.status_code == 401:
+        raise SystemExit(
+            "LinkedIn rejected the request (401). Your access token has likely expired "
+            "(~60 day lifetime): rerun scripts/get_linkedin_token.py and update the "
+            "LINKEDIN_ACCESS_TOKEN repo secret."
+        )
     resp.raise_for_status()
     return resp.headers.get("x-restli-id") or (resp.json().get("id") if resp.content else None)
 
