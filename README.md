@@ -1,12 +1,13 @@
 # trending-repo-bot
 
-Every day, posts one trending item to LinkedIn: a GitHub repo or a Hacker News story,
-alternating so one source doesn't crowd out the other. Runs on GitHub Actions, no server needed.
+Every weekday, posts one trending item to LinkedIn: a GitHub repo, a Hacker News story, or a
+Dev.to article, alternating source from the last post so no one source crowds out the others.
+Runs on GitHub Actions, no server needed.
 
 ## What it does
-1. Pulls today's top GitHub trending repos (`github.com/trending`) and top Hacker News
-   stories (HN's official Firebase API), and picks one not already posted, alternating
-   source from the last post so both stay in rotation
+1. Pulls today's top GitHub trending repos (`github.com/trending`), top Hacker News stories
+   (HN's official Firebase API), and top Dev.to articles (Dev.to's public API), and picks one
+   not already posted, alternating source from the last post so all three stay in rotation
 2. Summarizes it as a post via a local Ollama model: a hook (rotated across a few proven
    openers), a plain-language explanation, one sentence of actual opinion/prediction (not
    just a report), and a closing question. Follows LinkedIn's 2026 algorithm heuristics

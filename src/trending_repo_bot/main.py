@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 
 GITHUB_FETCH_N = 25  # buffer to search through for one not already posted
 HN_FETCH_N = 15
+DEVTO_FETCH_N = 15
 OLLAMA_MODEL = "llama3.2"
 POSTED_LOG = Path(__file__).resolve().parents[2] / "posted_repos.txt"  # repo root
 
@@ -43,6 +44,17 @@ REVEAL_BRIDGE_PATTERNS = [
     r"(?im)^stop \w[^,.]{0,40}[,.]\s*start\s+",
 ]
 NEG_PARALLEL_PATTERN = r"(?i)\bit'?s not \w[^,.]{0,40},\s*it'?s\s+"
+
+KIND_BY_SOURCE = {
+    "github": "trending open-source GitHub project",
+    "hackernews": "story trending on Hacker News",
+    "devto": "trending article on Dev.to",
+}
+TAG_BY_SOURCE = {
+    "github": "#OpenSource #GitHub",
+    "hackernews": "#HackerNews #Tech",
+    "devto": "#DevCommunity #Tech",
+}
 
 # Hook openers adapted from the Post Writer skill's formula library
 # (github.com/sergebulaev/linkedin-skills), trimmed to the ones that fit a
@@ -113,8 +125,26 @@ def get_hn_trending():
     return items
 
 
+def get_devto_trending():
+    """Top Dev.to articles from the last day, via Dev.to's public API."""
+    articles = requests.get(
+        "https://dev.to/api/articles", params={"top": 1, "per_page": DEVTO_FETCH_N}, timeout=15
+    ).json()
+    return [
+        {
+            "id": f"devto:{a['id']}",
+            "title": a.get("title", ""),
+            "desc": a.get("description", ""),
+            "url": a["url"],
+            "metric": f"{a.get('public_reactions_count', 0)} reactions, {a.get('comments_count', 0)} comments",
+            "source": "devto",
+        }
+        for a in articles
+    ]
+
+
 def get_trending():
-    return get_github_trending() + get_hn_trending()
+    return get_github_trending() + get_hn_trending() + get_devto_trending()
 
 
 def already_posted():
@@ -156,7 +186,7 @@ def summarize(item):
     # Rules below follow LinkedIn's 2026 algorithm heuristics (question openers and
     # in-body links both get penalized, see sergebulaev/linkedin-skills reference repo).
     hook_rule = HOOK_FORMULAS[_pick_hook_formula(item["id"])]
-    kind = "trending open-source GitHub project" if item["source"] == "github" else "story trending on Hacker News"
+    kind = KIND_BY_SOURCE[item["source"]]
     prompt = (
         f"Title: {item['title']}\nDescription: {item['desc']}\n\n"
         f"Write a LinkedIn post about this {kind}, as a short story:\n"
@@ -217,7 +247,7 @@ def format_linkedin(item):
     # first comment instead (see comment_with_link): in-body links are suppressed
     # ~40-60%, link-in-first-comment gets ~2.1x reach.
     story = humanize(summarize(item) or item["desc"] or item["title"])
-    tag = "#OpenSource #GitHub" if item["source"] == "github" else "#HackerNews #Tech"
+    tag = TAG_BY_SOURCE[item["source"]]
     return f"{story}\n\n{tag}"
 
 
