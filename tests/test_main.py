@@ -19,13 +19,23 @@ def test_pick_unposted_alternates_source(tmp_path, monkeypatch):
 
 
 def test_humanize_scrubs_vocab_and_strips_all_dashes():
-    text = "This is a game-changing leverage play — and here – and here -- and here."
+    text = (
+        "This is a game-changing leverage play — and here – and here -- and here "
+        "and it's the secret sauce - big results guaranteed."
+    )
     out = humanize(text)
     assert "game-changing" not in out.lower()
     assert "leverage" not in out.lower()
-    assert "—" not in out
-    assert "–" not in out
-    assert "--" not in out
+    for dash in ("—", "–", "--", " - "):
+        assert dash not in out
+
+
+def test_humanize_strips_reveal_bridges_and_negative_parallelism():
+    text = "Here's what changed everything.\nIt's not luck, it's preparation.\nThe result? Growth."
+    out = humanize(text)
+    assert "here's what" not in out.lower()
+    assert "it's not luck" not in out.lower()
+    assert "the result?" not in out.lower()
 
 
 def test_pick_hook_formula_is_deterministic_and_valid():

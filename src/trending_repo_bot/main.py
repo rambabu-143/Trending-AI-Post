@@ -21,12 +21,28 @@ AI_VOCAB = {
     "delve": "look at",
     "fundamentally": "",
     "in today's fast-paced world": "",
+    "in the age of ai": "",
+    "at the end of the day": "",
     "streamline": "simplify",
     "unlock": "open up",
     "foster": "build",
+    "deep dive": "look",
+    "move the needle": "change the numbers",
+    "paradigm shift": "real shift",
+    "pivotal moment": "the moment",
+    "testament to": "shows",
     "the result?": "",
     "plot twist:": "",
 }
+
+# Reveal-bridge / templated-rhythm patterns models default to (from the linkedin-skills
+# humanizer reference) — regex-anchored so they catch more than an exact literal match.
+REVEAL_BRIDGE_PATTERNS = [
+    r"(?im)^here'?s (what|how|why|the thing)\b[^:.\n]{0,40}[:.]\s*",
+    r"(?im)^(plot twist|spoiler|the twist)[:?]\s*",
+    r"(?im)^stop \w[^,.]{0,40}[,.]\s*start\s+",
+]
+NEG_PARALLEL_PATTERN = r"(?i)\bit'?s not \w[^,.]{0,40},\s*it'?s\s+"
 
 # Hook openers adapted from the Post Writer skill's formula library
 # (github.com/sergebulaev/linkedin-skills) — trimmed to the ones that fit a
@@ -151,8 +167,9 @@ def summarize(item):
         "4. Add one sentence of your own specific opinion or prediction — why this actually "
         "matters or where it's headed. Not generic praise: a real stance someone could disagree with.\n"
         "5. Close with one specific question about the reader's own experience with this kind of problem.\n"
-        "Style: 900-1300 characters, 1-2 sentence paragraphs with a blank line between them, "
-        "no em dashes anywhere, use a comma or period instead. Avoid 'game-changer', 'leverage', "
+        "Style: 900-1300 characters, 1-2 sentence paragraphs with a blank line between them. "
+        "No dashes anywhere, not em dashes and not a hyphen with spaces around it either "
+        "(' - ') — use a comma or period instead. Avoid 'game-changer', 'leverage', "
         "'delve', 'fundamentally', 'in today's fast-paced world', 'the result?', 'plot twist:'.\n"
         "Plain text only, no hashtags, no links, no quotes, no markdown."
     )
@@ -167,13 +184,29 @@ def summarize(item):
 
 def humanize(text):
     """Deterministic backstop for prompt rules the model didn't follow: strip AI-tell
-    vocab, strip every em dash / en dash / double-hyphen — no cap, no exceptions."""
+    vocab and reveal-bridge phrasing, straighten quotes, and strip every dash-like
+    separator (em dash, en dash, double-hyphen, or a spaced-out single hyphen — llama3.2's
+    own substitute when asked not to use dashes) — no cap, no exceptions."""
     for bad, good in AI_VOCAB.items():
         pattern = re.escape(bad) if " " in bad else rf"\b{re.escape(bad)}\b"
         text = re.sub(pattern, good, text, flags=re.IGNORECASE)
 
-    text = re.sub(r"\s*(?:—|–|--)\s*", ", ", text)
-    text = re.sub(r",\s*,", ",", text)
+    for pattern in REVEAL_BRIDGE_PATTERNS:
+        text = re.sub(pattern, "", text)
+    text = re.sub(NEG_PARALLEL_PATTERN, "it's ", text)
+
+    text = text.replace("“", '"').replace("”", '"')
+    text = text.replace("‘", "'").replace("’", "'")
+
+    def _dash_repl(m):
+        # if the text right before the dash already ends a sentence, just close the
+        # gap (no extra period); otherwise join with a comma
+        return " " if m.string[:m.start()].rstrip()[-1:] in ".!?" else ", "
+
+    text = re.sub(r"\s+[-–—]{1,2}\s+", _dash_repl, text)  # spaced dash-like separator, any flavor
+    text = re.sub(r"[—–]", ", ", text)  # any dash left with no surrounding space
+    text = re.sub(r"(?<=[.!?]\s)([a-z])", lambda m: m.group(1).upper(), text)  # re-capitalize after a new "."
+    text = re.sub(r"[,.]\s*,", ",", text)
     text = re.sub(r" {2,}", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
