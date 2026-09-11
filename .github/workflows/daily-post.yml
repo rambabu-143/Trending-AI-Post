@@ -2,7 +2,7 @@ name: Daily trending repo post
 
 on:
   schedule:
-    - cron: "30 3 * * *" # 9:00 AM IST
+    - cron: "30 3 * * 1-5" # 9:00 AM IST, Mon-Fri only (weekend B2B reach is cut 30-50%)
   workflow_dispatch: {}
 
 permissions:

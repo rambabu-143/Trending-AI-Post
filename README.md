@@ -53,7 +53,8 @@ Repo → Settings → Secrets and variables → Actions → New repository secre
 
 ### 4. Test it
 Actions tab → "Daily trending repo post" → Run workflow (manual trigger), check it posts correctly.
-After that it runs automatically every day at 9:00 AM IST (edit the cron in
+After that it runs automatically at 9:00 AM IST on weekdays (skips Sat/Sun, when B2B LinkedIn
+reach drops 30-50%; edit the cron in
 `.github/workflows/daily-post.yml` to change the time).
 
 ## Notes
