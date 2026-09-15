@@ -29,3 +29,4 @@ hn:49628493|hackernews|contrarian|urn:li:share:7503489631271759872
 hn:49643982|hackernews|contrarian|urn:li:share:7504097827728371712
 obra/superpowers|github|curiosity_gap|urn:li:share:7504098647974871041
 hn:49688695|hackernews|explain_kids|urn:li:share:7505191154934743040
+JustVugg/colibri|github|curiosity_gap|urn:li:share:7505548959818579968
