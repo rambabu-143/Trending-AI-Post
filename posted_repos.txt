@@ -31,3 +31,4 @@ obra/superpowers|github|curiosity_gap|urn:li:share:7504098647974871041
 hn:49688695|hackernews|explain_kids|urn:li:share:7505191154934743040
 JustVugg/colibri|github|curiosity_gap|urn:li:share:7505548959818579968
 hn:49717558|hackernews|curiosity_gap|urn:li:share:7505909869636595713
+alibaba/open-code-review|github|number_stat|urn:li:share:7506273427176075264
