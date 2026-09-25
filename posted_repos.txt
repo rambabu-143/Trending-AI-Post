@@ -37,3 +37,4 @@ BuilderIO/agent-native|github|contrarian|urn:li:share:7507728625077473281
 hn:49797323|hackernews|number_stat|urn:li:share:7508083616459960320
 anthropics/financial-services|github|number_stat|urn:li:share:7508446523232518144
 hn:49826565|hackernews|contrarian|urn:li:share:7508807180813283329
+rohitg00/ai-engineering-from-scratch|github|number_stat|urn:li:share:7509174940189982720
