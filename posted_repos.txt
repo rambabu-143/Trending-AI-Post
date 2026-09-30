@@ -40,3 +40,4 @@ hn:49826565|hackernews|contrarian|urn:li:share:7508807180813283329
 rohitg00/ai-engineering-from-scratch|github|number_stat|urn:li:share:7509174940189982720
 hn:49872723|hackernews|curiosity_gap|urn:li:share:7510277995882909697
 debpalash/VoiceStudio|github|contrarian|urn:li:share:7510640425213415425
+hn:49905487|hackernews|curiosity_gap|urn:li:share:7511000694712066048
