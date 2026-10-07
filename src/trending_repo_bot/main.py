@@ -144,7 +144,8 @@ def get_devto_trending():
 
 
 def get_trending():
-    return get_github_trending() + get_hn_trending() + get_devto_trending()
+    # ponytail: HN/Dev.to paused, unchecked LLM summaries hurt credibility; re-add get_hn_trending()/get_devto_trending() to restore
+    return get_github_trending()
 
 
 def already_posted():
