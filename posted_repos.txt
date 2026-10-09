@@ -45,3 +45,4 @@ NVIDIA/OpenShell|github|number_stat|urn:li:share:7511369816570658816
 hn:49926069|hackernews|contrarian|urn:li:share:7511726496621912064
 morluto/rea|github|contrarian|urn:li:share:7513687143941058561
 boykopovar/AnyPS5|github|explain_kids|urn:li:share:7513913717168721920
+thedotmack/claude-mem|github|contrarian|urn:li:share:7514275596051566594
