@@ -1,8 +1,6 @@
 name: Daily trending repo post
 
 on:
-  schedule:
-    - cron: "30 3 * * 1-5" # 9:00 AM IST, Mon-Fri only (weekend B2B reach is cut 30-50%)
   workflow_dispatch: {}
 
 permissions:
@@ -12,34 +10,46 @@ jobs:
   post:
     runs-on: ubuntu-latest
     steps:
+      - name: Random-hour gate (one run per day posts, hour picked by date hash)
+        id: gate
+        run: |
+          target=$(( 4 + $(date -u +%Y%m%d | cksum | cut -d' ' -f1) % 8 ))
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%-H)" = "$target" ]; then echo "go=1" >> $GITHUB_OUTPUT; fi
+
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.go
 
       - name: Install uv
+        if: steps.gate.outputs.go
         uses: astral-sh/setup-uv@v3
 
       - name: Cache Ollama models
+        if: steps.gate.outputs.go
         uses: actions/cache@v4
         with:
           path: ~/.ollama/models
           key: ollama-llama3.2
 
       - name: Install Ollama
+        if: steps.gate.outputs.go
         run: curl -fsSL https://ollama.com/install.sh | sh
 
       - name: Start Ollama and pull model
+        if: steps.gate.outputs.go
         run: |
           ollama serve &
           for i in $(seq 1 30); do curl -s http://localhost:11434 >/dev/null && break; sleep 1; done
           ollama pull llama3.2
 
       - name: Run bot
+        if: steps.gate.outputs.go
         env:
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
         run: uv run post-trending
 
       - name: Commit updated posted_repos.txt
-        if: always()
+        if: always() && steps.gate.outputs.go
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

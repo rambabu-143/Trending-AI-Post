@@ -252,10 +252,72 @@ def format_linkedin(item):
     return f"{story}\n\n{tag}"
 
 
-def post_to_linkedin(text):
+MAX_IMAGES = 3
+IMG_RE = re.compile(r'!\[[^\]]*\]\(\s*<?([^)\s>]+)|<img[^>]+src=["\']([^"\']+)', re.I)
+BADGE_HOSTS = ("shields.io", "badge", "travis-ci", "codecov", "github.com/sponsors")
+
+
+def get_readme_images(item):
+    """Up to MAX_IMAGES (bytes) png/jpg/gif images from a GitHub repo's README; [] otherwise."""
+    if item["source"] != "github":
+        return []
+    r = requests.get(
+        f"https://api.github.com/repos/{item['id']}/readme",
+        headers={"Accept": "application/vnd.github.raw+json"}, timeout=15,
+    )
+    if not r.ok:
+        return []
+    base = f"https://github.com/{item['id']}/raw/HEAD/"
+    images = []
+    for m in IMG_RE.finditer(r.text):
+        url = urllib.parse.urljoin(base, m.group(1) or m.group(2))
+        path = urllib.parse.urlparse(url).path.lower()
+        if not path.endswith((".png", ".jpg", ".jpeg", ".gif")) or any(b in url for b in BADGE_HOSTS):
+            continue
+        try:
+            img = requests.get(url, timeout=15)
+        except requests.RequestException:
+            continue
+        if img.ok and 5_000 < len(img.content) < 8_000_000:  # skip icons/tiny badges and huge files
+            images.append(img.content)
+        if len(images) == MAX_IMAGES:
+            break
+    return images
+
+
+def upload_image(data):
+    """Register + upload one image to LinkedIn, return its asset URN."""
+    token = os.environ["LINKEDIN_ACCESS_TOKEN"]
+    author = os.environ["LINKEDIN_AUTHOR_URN"]
+    headers = {"Authorization": f"Bearer {token}", "X-Restli-Protocol-Version": "2.0.0"}
+    reg = requests.post(
+        "https://api.linkedin.com/v2/assets?action=registerUpload", headers=headers, timeout=15,
+        json={"registerUploadRequest": {
+            "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
+            "owner": author,
+            "serviceRelationships": [{"relationshipType": "OWNER", "identifier": "urn:li:userGeneratedContent"}],
+        }},
+    )
+    reg.raise_for_status()
+    v = reg.json()["value"]
+    up = v["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
+    requests.put(up, headers={"Authorization": f"Bearer {token}"}, data=data, timeout=60).raise_for_status()
+    return v["asset"]
+
+
+def post_to_linkedin(text, images=()):
     """Publish the post and return its URN (for the follow-up link comment)."""
     token = os.environ["LINKEDIN_ACCESS_TOKEN"]
     author = os.environ["LINKEDIN_AUTHOR_URN"]  # e.g. urn:li:person:XXXXXXXX
+    assets = []
+    for data in images:
+        try:
+            assets.append(upload_image(data))
+        except requests.RequestException as e:
+            print(f"Skipping an image, upload failed: {e}")
+    share = {"shareCommentary": {"text": text}, "shareMediaCategory": "IMAGE" if assets else "NONE"}
+    if assets:
+        share["media"] = [{"status": "READY", "media": a} for a in assets]
     resp = requests.post(
         "https://api.linkedin.com/v2/ugcPosts",
         headers={
@@ -266,12 +328,7 @@ def post_to_linkedin(text):
         json={
             "author": author,
             "lifecycleState": "PUBLISHED",
-            "specificContent": {
-                "com.linkedin.ugc.ShareContent": {
-                    "shareCommentary": {"text": text},
-                    "shareMediaCategory": "NONE",
-                }
-            },
+            "specificContent": {"com.linkedin.ugc.ShareContent": share},
             "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
         },
         timeout=15,
@@ -312,7 +369,7 @@ def main():
     item = pick_unposted(items)
     if item is None:
         raise SystemExit("Everything currently trending was already posted before, nothing new to post.")
-    post_urn = post_to_linkedin(format_linkedin(item))
+    post_urn = post_to_linkedin(format_linkedin(item), get_readme_images(item))
     try:
         comment_with_link(post_urn, item["url"])
     except requests.HTTPError as e:

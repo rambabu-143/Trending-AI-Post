@@ -6,3 +6,4 @@ run.log
 .pytest_cache/
 .serena/
 graphify-out/
+.last_post_day
