@@ -48,3 +48,4 @@ boykopovar/AnyPS5|github|explain_kids|urn:li:share:7513913717168721920
 thedotmack/claude-mem|github|contrarian|urn:li:share:7514275596051566594
 storytold/artcraft|github|curiosity_gap|urn:li:share:7515368688020074496
 mksglu/context-mode|github|contrarian|urn:li:share:7515726438050947073
+vercel-labs/skills|github|contrarian|urn:li:share:7516059097901973506
